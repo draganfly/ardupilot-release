@@ -152,14 +152,14 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
     // @Description: battery_status messages will be accepted from this comp id
     // @Range: 1 255
     // @User: Standard
-    AP_GROUPINFO("B_CMP_ID", 21, AP_BattMonitor_Params, _comp_id, 25),
+    AP_GROUPINFO("B_CMP_ID", 22, AP_BattMonitor_Params, _comp_id, 25),
 
     // @Param: B_SYS_ID
     // @DisplayName: mavlnk battery monitor system id
     // @Description: battery_status messages will be accepted from this system id
     // @Range: 1 255
     // @User: Standard
-    AP_GROUPINFO("B_SYS_ID", 22, AP_BattMonitor_Params, _sys_id, 1),
+    AP_GROUPINFO("B_SYS_ID", 23, AP_BattMonitor_Params, _sys_id, 1),
 
     AP_GROUPEND
 
