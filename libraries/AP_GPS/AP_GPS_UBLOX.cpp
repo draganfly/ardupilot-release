@@ -1192,9 +1192,21 @@ AP_GPS_UBLOX::_parse_gps(void)
 #if UBLOX_RXM_RAW_LOGGING
     if (_class == CLASS_RXM && _msg_id == MSG_RXM_RAW && gps._raw_data != 0) {
         log_rxm_raw(_buffer.rxm_raw);
+        raw_messages_logged++;
+        if((AP_HAL::micros64()-raw_print_micros)>30*1E6)
+            {
+                raw_print_micros=AP_HAL::micros64();
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO,"U-blox %d Logged %d raw messages",state.instance + 1,raw_messages_logged);
+            }
         return false;
     } else if (_class == CLASS_RXM && _msg_id == MSG_RXM_RAWX && gps._raw_data != 0) {
         log_rxm_rawx(_buffer.rxm_rawx);
+        raw_messages_logged++;
+        if((AP_HAL::micros64()-raw_print_micros)>30*1E6)
+            {
+                raw_print_micros=AP_HAL::micros64();
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO,"U-blox %d Logged %d raw messages",state.instance + 1,raw_messages_logged);
+            }
         return false;
     }
 #endif // UBLOX_RXM_RAW_LOGGING

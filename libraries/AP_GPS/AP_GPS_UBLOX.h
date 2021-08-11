@@ -785,4 +785,6 @@ private:
     // RTCM3 parser for when in moving baseline base mode
     RTCM3_Parser *rtcm3_parser;
 #endif // GPS_MOVING_BASELINE
+    uint64_t raw_print_micros=0;
+    uint32_t raw_messages_logged=0;
 };
