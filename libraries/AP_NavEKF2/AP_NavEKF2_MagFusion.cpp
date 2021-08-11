@@ -437,6 +437,7 @@ void NavEKF2_core::FuseMagnetometer()
         return;
     }
     
+        for (uint8_t i = 0; i<=stateIndexLim; i++) H_MAG[i] = 0.0f;
     // perform sequential fusion of magnetometer measurements.
     // this assumes that the errors in the different components are
     // uncorrelated which is not true, however in the absence of covariance
