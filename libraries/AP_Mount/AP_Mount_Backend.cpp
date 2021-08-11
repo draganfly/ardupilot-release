@@ -116,7 +116,7 @@ bool AP_Mount_Backend::handle_global_position_int(uint8_t msg_sysid, const mavli
 
 void AP_Mount_Backend::rate_input_rad(float &out, const RC_Channel *chan, float min, float max) const
 {
-    if ((chan == nullptr) || (chan->get_radio_in() == 0)) {
+    if ((chan == nullptr) || (chan->get_radio_in() == 0) || (chan->get_radio_in() < (chan->get_radio_min()-50)) || (chan->get_radio_in() > (chan->get_radio_max()+50))) {
         return;
     }
     out += chan->norm_input_dz() * 0.0001f * _frontend._joystick_speed;
