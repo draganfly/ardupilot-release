@@ -131,6 +131,7 @@ public:
     // mavlink message handling:
     MAV_RESULT handle_command_long(const mavlink_command_long_t &packet);
     void handle_param_value(const mavlink_message_t &msg);
+    void handle_command_ack(const mavlink_message_t &msg);
     void handle_message(mavlink_channel_t chan, const mavlink_message_t &msg);
 
     // send a GIMBAL_REPORT message to GCS

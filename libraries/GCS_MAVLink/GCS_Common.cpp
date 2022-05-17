@@ -3319,6 +3319,15 @@ void GCS_MAVLINK::handle_command_ack(const mavlink_message_t &msg)
         accelcal->handleMessage(msg);
     }
 #endif
+#if HAL_MOUNT_ENABLED
+    AP_Mount *mount = AP::mount();
+    if (mount == nullptr) {
+        return;
+    }
+    mount->handle_command_ack(msg);
+#endif
+
+
 }
 
 // allow override of RC channel values for complete GCS
@@ -4556,8 +4565,17 @@ void GCS_MAVLINK::convert_COMMAND_LONG_to_COMMAND_INT(const mavlink_command_long
     out.param3 = in.param3;
     out.param4 = in.param4;
     if (command_long_stores_location((MAV_CMD)in.command)) {
-        out.x = in.param5 *1e7;
-        out.y = in.param6 *1e7;
+        if(fabsf(in.param5)<=90.0f && fabsf(in.param6)<=180.0f)
+            {
+            out.x = in.param5 *1e7;
+            out.y = in.param6 *1e7;
+            }
+            else
+            {
+            out.x=0;
+            out.y=0;
+            }
+            
     } else {
         out.x = in.param5;
         out.y = in.param6;

@@ -120,7 +120,41 @@ void AP_Mount_Backend::rate_input_rad(float &out, const RC_Channel *chan, float 
         return;
     }
     out += chan->norm_input_dz() * 0.0001f * _frontend._joystick_speed;
-    out = constrain_float(out, radians(min*0.01f), radians(max*0.01f));
+    if(!has_pan_control() || min>-180.0f || max <180.0f)
+        {
+        out = constrain_float(out, radians(min*0.01f), radians(max*0.01f));
+        }
+        else
+        {
+        while(out>M_PI)
+            out-=2*M_PI;
+        while(out<-M_PI)
+            out+=2*M_PI;
+        }
+        
+}
+
+void AP_Mount_Backend::get_rate_control(float &roll, float &tilt, float &pan)
+{
+    const RC_Channel *roll_ch = rc().channel(_state._roll_rc_in - 1);
+    const RC_Channel *tilt_ch = rc().channel(_state._tilt_rc_in - 1);
+    const RC_Channel *pan_ch = rc().channel(_state._pan_rc_in - 1);
+
+    if ((roll_ch != nullptr) && (roll_ch->get_radio_in() != 0)) {
+        roll=roll_ch->norm_input_dz() * _frontend._joystick_speed * 3 /10;  //a value of 10 is 3dps, allegedly, covert to dps
+        }
+        else
+        {roll=0;}
+     if ((tilt_ch != nullptr) && (tilt_ch->get_radio_in() != 0)) {
+        tilt=tilt_ch->norm_input_dz() * _frontend._joystick_speed * 3 /10;
+        }
+        else
+        {tilt=0;}
+    if ((pan_ch != nullptr) && (pan_ch->get_radio_in() != 0)) {
+        pan=pan_ch->norm_input_dz() * _frontend._joystick_speed * 3 /10;
+        }
+        else
+        {pan=0;}
 }
 
 // update_targets_from_rc - updates angle targets using input from receiver
@@ -174,6 +208,17 @@ bool AP_Mount_Backend::calc_angle_to_roi_target(Vector3f& angles_to_target_rad,
         return false;
     }
     return calc_angle_to_location(_state._roi_target, angles_to_target_rad, calc_tilt, calc_pan, relative_pan);
+}
+
+bool AP_Mount_Backend::get_roi(int32_t &alt,int32_t &lat, int32_t &lon)
+{
+    if (!_state._roi_target_set) {
+        return false;
+    }  
+    alt=_state._roi_target.alt;
+    lat=_state._roi_target.lat;
+    lon=_state._roi_target.lng;
+    return true;
 }
 
 bool AP_Mount_Backend::calc_angle_to_sysid_target(Vector3f& angles_to_target_rad,

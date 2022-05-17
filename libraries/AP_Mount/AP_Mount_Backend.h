@@ -79,6 +79,9 @@ public:
     // handle a PARAM_VALUE message
     virtual void handle_param_value(const mavlink_message_t &msg) {}
 
+    // handle a COMMAND_ACK message
+    virtual void handle_command_ack(const mavlink_message_t &msg) {}
+
     // send a GIMBAL_REPORT message to the GCS
     virtual void send_gimbal_report(const mavlink_channel_t chan) {}
 
@@ -89,6 +92,8 @@ protected:
 
     // update_targets_from_rc - updates angle targets (i.e. _angle_ef_target_rad) using input from receiver
     void update_targets_from_rc();
+
+    void get_rate_control(float &roll, float &tilt, float &pan);
 
     // angle_input_rad - convert RC input into an earth-frame target angle
     float angle_input_rad(const RC_Channel* rc, int16_t angle_min, int16_t angle_max);
@@ -109,6 +114,8 @@ protected:
                                   bool calc_pan,
                                   bool relative_pan = true) const WARN_IF_UNUSED;
 
+    bool get_roi(int32_t &alt,int32_t &lat, int32_t &lon);
+
     // calc_angle_to_sysid_target - calculates the earth-frame roll, tilt
     // and pan angles (and radians) to point at the sysid-target (as set
     // by various mavlink messages)
@@ -128,6 +135,8 @@ protected:
 private:
 
     void rate_input_rad(float &out, const RC_Channel *ch, float min, float max) const;
+    
+
 };
 
 #endif // HAL_MOUNT_ENABLED
