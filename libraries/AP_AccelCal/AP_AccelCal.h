@@ -25,7 +25,7 @@ public:
     { update_status(); }
 
     // start all the registered calibrations
-    void start(GCS_MAVLINK *gcs);
+    void start(GCS_MAVLINK *gcs,uint8_t sysid, uint8_t compid);
 
     // called on calibration cancellation
     void cancel();
@@ -88,6 +88,8 @@ private:
     uint8_t _num_active_calibrators;
 
     AccelCalibrator* get_calibrator(uint8_t i);
+
+    uint8_t _cal_sysid=0, _cal_compid=0;
 };
 
 class AP_AccelCal_Client {

@@ -182,7 +182,7 @@ void AP_AccelCal::update()
     }
 }
 
-void AP_AccelCal::start(GCS_MAVLINK *gcs)
+void AP_AccelCal::start(GCS_MAVLINK *gcs,uint8_t sysid,uint8_t compid)
 {
     if (gcs == nullptr || _started) {
         return;
@@ -196,6 +196,8 @@ void AP_AccelCal::start(GCS_MAVLINK *gcs)
         cal->start(ACCEL_CAL_AXIS_ALIGNED_ELLIPSOID, 6, 0.5f);
         _num_active_calibrators++;
     }
+    _cal_sysid=sysid;
+    _cal_compid=compid;
 
     _started = true;
     _saving = false;
@@ -367,6 +369,10 @@ void AP_AccelCal::handleMessage(const mavlink_message_t &msg)
     if (!_waiting_for_mavlink_ack) {
         return;
     }
+
+    if(msg.sysid!=_cal_sysid || msg.compid!=_cal_compid)
+        return;
+
     _waiting_for_mavlink_ack = false;
     if (msg.msgid == MAVLINK_MSG_ID_COMMAND_ACK) {
         _start_collect_sample = true;
