@@ -44,4 +44,7 @@ public:
     AP_Int8  _failsafe_voltage_source;  /// voltage type used for detection of low voltage event
     AP_Int8  _failsafe_low_action;      /// action to preform on a low battery failsafe
     AP_Int8  _failsafe_critical_action; /// action to preform on a critical battery failsafe
+    //unsigned types not available?
+    AP_Int16 _comp_id;                  /// Mavlink component ID to accept BATTERY_STATUS messages from 
+    AP_Int16 _sys_id;                  /// Mavlink component ID to accept BATTERY_STATUS messages from 
 };

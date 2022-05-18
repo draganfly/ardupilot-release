@@ -3691,6 +3691,13 @@ void GCS_MAVLINK::handle_common_message(const mavlink_message_t &msg)
         handle_optical_flow(msg);
         break;
 #endif
+    case MAVLINK_MSG_ID_BATTERY_STATUS:
+        {
+            //throws an error when the line below is const, why?
+            AP_BattMonitor &battery = AP::battery();
+            battery.handle_mavlink_battery(msg);
+            break;
+        }
 
     case MAVLINK_MSG_ID_DISTANCE_SENSOR:
         handle_distance_sensor(msg);

@@ -48,6 +48,7 @@ class AP_BattMonitor_Generator;
 class AP_BattMonitor_INA2XX;
 class AP_BattMonitor_LTC2946;
 class AP_BattMonitor_Torqeedo;
+class AP_BattMonitor_Mavlink;
 
 class AP_BattMonitor
 {
@@ -65,11 +66,12 @@ class AP_BattMonitor
     friend class AP_BattMonitor_Generator;
     friend class AP_BattMonitor_INA2XX;
     friend class AP_BattMonitor_LTC2946;
-
+    friend class AP_BattMonitor_Mavlink;
     friend class AP_BattMonitor_Torqeedo;
 
 public:
 
+ 
     // battery failsafes must be defined in levels of severity so that vehicles wont fall backwards
     enum class Failsafe : uint8_t {
         None = 0,
@@ -101,6 +103,7 @@ public:
         INA2XX                     = 21,
         LTC2946                    = 22,
         Torqeedo                   = 23,
+        Mavlink                    = 64,
     };
 
     FUNCTOR_TYPEDEF(battery_failsafe_handler_fn_t, void, const char *, const int8_t);
@@ -141,6 +144,8 @@ public:
         uint32_t    time_remaining;            // remaining battery time
         bool        has_time_remaining;        // time_remaining is only valid if this is true
         const struct AP_Param::GroupInfo *var_info;
+        int8_t percent;
+         
     };
 
     static const struct AP_Param::GroupInfo *backend_var_info[AP_BATT_MONITOR_MAX_INSTANCES];
@@ -186,6 +191,8 @@ public:
 
     /// time_remaining - returns remaining battery time
     bool time_remaining(uint32_t &seconds, const uint8_t instance = AP_BATT_PRIMARY_INSTANCE) const WARN_IF_UNUSED;
+
+    uint16_t time_remaining(const uint8_t instance = AP_BATT_PRIMARY_INSTANCE) const;
 
     /// pack_capacity_mah - returns the capacity of the battery pack in mAh when the pack is full
     int32_t pack_capacity_mah(uint8_t instance) const;
@@ -245,6 +252,7 @@ public:
 
     // Returns mavlink fault state
     uint32_t get_mavlink_fault_bitmask(const uint8_t instance) const;
+    void handle_mavlink_battery(const mavlink_message_t &battery_status);
 
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -277,4 +285,5 @@ private:
 
 namespace AP {
     AP_BattMonitor &battery();
+    AP_BattMonitor *get_battery_pointer();
 };
