@@ -72,7 +72,7 @@ void AP_Mount_SToRM32::update()
 
         // point to the angles given by a mavlink message
         case MAV_MOUNT_MODE_MAVLINK_TARGETING:
-            if(_query)
+            if(_query && _gimbal_options_mask&GIMBAL_MODE_AWARE_MASK)
                 {
                 if(_last_mode!=MAV_MOUNT_MODE_MAVLINK_TARGETING || _force_change==true)
                     {
@@ -107,7 +107,7 @@ void AP_Mount_SToRM32::update()
         // RC radio manual angle control, but with stabilization from the AHRS
         case MAV_MOUNT_MODE_RC_TARGETING:
             // update targets using pilot's rc inputs
-            if(_query)
+            if(_query && _gimbal_options_mask&GIMBAL_MODE_AWARE_MASK)
                 {
                 block_send=true;
                 if(_last_mode!=MAV_MOUNT_MODE_RC_TARGETING || _force_change==true)
