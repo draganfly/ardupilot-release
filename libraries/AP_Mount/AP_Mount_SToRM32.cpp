@@ -296,6 +296,9 @@ void AP_Mount_SToRM32::query_gimbal()
         return;
     }
 
+    if(_compid!=26) //dirty hack so this only attempts to talk to the QA board, gremsy gimbals seem to be broken by the below call
+        return; 
+
     if(((AP_HAL::millis() - _last_gimbal_info_request) > AP_MOUNT_STORM32_RESEND_QUERY_MS))
         {
         mavlink_msg_param_request_read_send(_chan,_sysid,_compid,AP_MOUNT_GIMBAL_OPTIONS_MASK_NAME,-1);
