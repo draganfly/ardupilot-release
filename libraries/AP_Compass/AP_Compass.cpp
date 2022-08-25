@@ -1209,6 +1209,12 @@ void Compass::_probe_external_i2c_compasses(void)
                         AP_Compass_BMM150::probe(GET_I2C_DEVICE(i, addr), true, ROTATION_NONE));
         }
     }
+
+    FOREACH_I2C_INTERNAL(i){ 
+        for (uint8_t addr=BMM150_I2C_ADDR_MIN; addr <= BMM150_I2C_ADDR_MAX; addr++) {
+            ADD_BACKEND(DRIVER_BMM150, AP_Compass_BMM150::probe(GET_I2C_DEVICE(i, addr), all_external, ROTATION_NONE));
+            }
+        }
 #endif // HAL_BUILD_AP_PERIPH
 }
 
