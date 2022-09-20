@@ -57,7 +57,17 @@ void ModeBrake::run()
     pos_control->update_xy_controller();
 
     // call attitude controller
-    attitude_control->input_thrust_vector_rate_heading(pos_control->get_thrust_vector(), 0.0f);
+    //attitude_control->input_thrust_vector_rate_heading(pos_control->get_thrust_vector(), 0.0f);
+    if (auto_yaw.mode() == AUTO_YAW_HOLD) {
+            // roll & pitch from waypoint controller,
+        attitude_control->input_thrust_vector_rate_heading(loiter_nav->get_thrust_vector(), 0.0f);
+    } else if (auto_yaw.mode() == AUTO_YAW_RATE) {
+        // roll & pitch from waypoint controller, yaw rate from mavlink command or mission item
+        attitude_control->input_thrust_vector_rate_heading(loiter_nav->get_thrust_vector(), auto_yaw.rate_cds());
+    } else {
+        // roll, pitch from waypoint controller, yaw heading from GCS or auto_heading()
+        attitude_control->input_thrust_vector_heading(loiter_nav->get_thrust_vector(), auto_yaw.yaw(),auto_yaw.rate_cds());
+    }
 
     pos_control->set_pos_target_z_from_climb_rate_cm(0.0f);
     pos_control->update_z_controller();
@@ -73,6 +83,21 @@ void ModeBrake::timeout_to_loiter_ms(uint32_t timeout_ms)
 {
     _timeout_start = millis();
     _timeout_ms = timeout_ms;
+}
+
+void ModeBrake::set_yaw_target(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle)
+{
+    if (use_yaw && relative_angle) {
+        auto_yaw.set_fixed_yaw(yaw_cd * 0.01f, 0.0f, 0, relative_angle);
+    } else if (use_yaw && use_yaw_rate) {
+        auto_yaw.set_yaw_angle_rate(yaw_cd * 0.01f, yaw_rate_cds * 0.01f);
+    } else if (use_yaw && !use_yaw_rate) {
+        auto_yaw.set_yaw_angle_rate(yaw_cd * 0.01f, 0.0f);
+    } else if (use_yaw_rate) {
+        auto_yaw.set_rate(yaw_rate_cds);
+    } else {
+        auto_yaw.set_mode_to_default(false);
+    }
 }
 
 #endif

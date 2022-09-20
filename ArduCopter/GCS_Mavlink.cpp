@@ -1173,6 +1173,24 @@ void GCS_MAVLINK_Copter::handleMessage(const mavlink_message_t &msg)
         mavlink_set_position_target_local_ned_t packet;
         mavlink_msg_set_position_target_local_ned_decode(&msg, &packet);
 
+        if(copter.flightmode->mode_number()==Mode::Number::LOITER || copter.flightmode->mode_number()==Mode::Number::AUTO || copter.flightmode->mode_number()==Mode::Number::BRAKE)
+            {
+            bool yaw_ignore      = packet.type_mask & MAVLINK_SET_POS_TYPE_MASK_YAW_IGNORE;
+            bool yaw_rate_ignore = packet.type_mask & MAVLINK_SET_POS_TYPE_MASK_YAW_RATE_IGNORE;
+            // prepare yaw
+            float yaw_cd = 0.0f;
+            bool yaw_relative = false;
+            float yaw_rate_cds = 0.0f;
+            if (!yaw_ignore) {
+                yaw_cd = ToDeg(packet.yaw) * 100.0f;
+                yaw_relative = packet.coordinate_frame == MAV_FRAME_BODY_NED || packet.coordinate_frame == MAV_FRAME_BODY_OFFSET_NED;
+            }
+            if (!yaw_rate_ignore) {
+                yaw_rate_cds = ToDeg(packet.yaw_rate) * 100.0f;
+            }
+                copter.flightmode->set_yaw_target(!yaw_ignore,yaw_cd,!yaw_rate_ignore,yaw_rate_cds,yaw_relative);
+            }
+
         // exit if vehicle is not in Guided mode or Auto-Guided mode
         if (!copter.flightmode->in_guided_mode()) {
             break;
@@ -1262,7 +1280,10 @@ void GCS_MAVLINK_Copter::handleMessage(const mavlink_message_t &msg)
             copter.mode_guided.set_accel(accel_vector, !yaw_ignore, yaw_cd, !yaw_rate_ignore, yaw_rate_cds, yaw_relative);
         } else if (!pos_ignore && vel_ignore && acc_ignore) {
             copter.mode_guided.set_destination(pos_vector, !yaw_ignore, yaw_cd, !yaw_rate_ignore, yaw_rate_cds, yaw_relative, false);
-        } else {
+        } else if (!yaw_rate_ignore || !yaw_ignore)
+        {
+            copter.mode_guided.set_yaw_state(!yaw_ignore,yaw_cd,!yaw_rate_ignore,yaw_rate_cds,yaw_relative);
+        } else{
             // input is not valid so stop
             copter.mode_guided.init(true);
         }

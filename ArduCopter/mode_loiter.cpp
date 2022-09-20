@@ -103,7 +103,9 @@ void ModeLoiter::run()
 
         // get pilot's desired yaw rate
         target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->norm_input_dz());
-
+        if (!is_zero(target_yaw_rate)) {
+            auto_yaw.set_mode(AUTO_YAW_HOLD);
+        }
         // get pilot desired climb rate
         target_climb_rate = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
         target_climb_rate = constrain_float(target_climb_rate, -get_pilot_speed_dn(), g.pilot_speed_up);
@@ -186,7 +188,17 @@ void ModeLoiter::run()
 #endif
 
         // call attitude controller
-        attitude_control->input_thrust_vector_rate_heading(loiter_nav->get_thrust_vector(), target_yaw_rate);
+        //attitude_control->input_thrust_vector_rate_heading(loiter_nav->get_thrust_vector(), target_yaw_rate);
+        if (auto_yaw.mode() == AUTO_YAW_HOLD) {
+            // roll & pitch from waypoint controller, yaw rate from pilot
+            attitude_control->input_thrust_vector_rate_heading(loiter_nav->get_thrust_vector(), target_yaw_rate);
+        } else if (auto_yaw.mode() == AUTO_YAW_RATE) {
+            // roll & pitch from waypoint controller, yaw rate from mavlink command or mission item
+            attitude_control->input_thrust_vector_rate_heading(loiter_nav->get_thrust_vector(), auto_yaw.rate_cds());
+        } else {
+            // roll, pitch from waypoint controller, yaw heading from GCS or auto_heading()
+            attitude_control->input_thrust_vector_heading(loiter_nav->get_thrust_vector(), auto_yaw.yaw(),auto_yaw.rate_cds());
+        }
 
         // get avoidance adjusted climb rate
         target_climb_rate = get_avoidance_adjusted_climbrate(target_climb_rate);
@@ -211,6 +223,22 @@ uint32_t ModeLoiter::wp_distance() const
 int32_t ModeLoiter::wp_bearing() const
 {
     return loiter_nav->get_bearing_to_target();
+}
+
+// helper function to set yaw state and targets
+void ModeLoiter::set_yaw_target(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle)
+{
+    if (use_yaw && relative_angle) {
+        auto_yaw.set_fixed_yaw(yaw_cd * 0.01f, 0.0f, 0, relative_angle);
+    } else if (use_yaw && use_yaw_rate) {
+        auto_yaw.set_yaw_angle_rate(yaw_cd * 0.01f, yaw_rate_cds * 0.01f);
+    } else if (use_yaw && !use_yaw_rate) {
+        auto_yaw.set_yaw_angle_rate(yaw_cd * 0.01f, 0.0f);
+    } else if (use_yaw_rate) {
+        auto_yaw.set_rate(yaw_rate_cds);
+    } else {
+        auto_yaw.set_mode_to_default(false);
+    }
 }
 
 #endif
