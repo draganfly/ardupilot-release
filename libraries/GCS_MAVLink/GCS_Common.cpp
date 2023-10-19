@@ -3589,6 +3589,20 @@ void GCS_MAVLINK::handle_command_ack(const mavlink_message_t &msg)
         accelcal->handle_command_ack(packet);
     }
 #endif
+
+#if HAL_MOUNT_ENABLED
+    AP_Mount *mount = AP::mount();
+    if (mount != nullptr) {
+        mount->handle_command_ack(msg);
+    }
+
+#endif
+
+    AP_Winch *winch=AP::winch();
+    if(winch!=nullptr) {
+        winch->handle_command_ack(msg);
+    }
+
 }
 
 // allow override of RC channel values for complete GCS
@@ -3971,6 +3985,13 @@ void GCS_MAVLINK::handle_common_message(const mavlink_message_t &msg)
         handle_optical_flow(msg);
         break;
 #endif
+    case MAVLINK_MSG_ID_BATTERY_STATUS:
+        {
+            //throws an error when the line below is const, why?
+            AP_BattMonitor &battery = AP::battery();
+            battery.handle_mavlink_battery(msg);
+            break;
+        }
 
     case MAVLINK_MSG_ID_DISTANCE_SENSOR:
         handle_distance_sensor(msg);
@@ -4033,6 +4054,16 @@ void GCS_MAVLINK::handle_common_message(const mavlink_message_t &msg)
         AP_CheckFirmware::handle_msg(chan, msg);
         break;
 #endif
+
+    case MAVLINK_MSG_ID_WINCH_STATUS:
+
+        AP_Winch *winch = AP_Winch::get_singleton();
+        if(winch!=nullptr)
+            {
+                winch->handleMessage(msg);
+            }
+        break;
+
     }
 
 }
@@ -4904,8 +4935,17 @@ void GCS_MAVLINK::convert_COMMAND_LONG_to_COMMAND_INT(const mavlink_command_long
     out.param3 = in.param3;
     out.param4 = in.param4;
     if (command_long_stores_location((MAV_CMD)in.command)) {
-        out.x = in.param5 *1e7;
-        out.y = in.param6 *1e7;
+        if(fabsf(in.param5)<=90.0f && fabsf(in.param6)<=180.0f)
+            {
+            out.x = in.param5 *1e7;
+            out.y = in.param6 *1e7;
+            }
+            else
+            {
+            out.x=0;
+            out.y=0;
+            }
+
     } else {
         out.x = in.param5;
         out.y = in.param6;

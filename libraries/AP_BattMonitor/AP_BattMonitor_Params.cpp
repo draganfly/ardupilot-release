@@ -151,6 +151,20 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
     AP_GROUPINFO("OPTIONS", 21, AP_BattMonitor_Params, _options, 0),
 #endif // HAL_BUILD_AP_PERIPH
 
+    // @Param: B_CMP_ID
+    // @DisplayName: mavlnk battery monitor comp id
+    // @Description: battery_status messages will be accepted from this comp id
+    // @Range: 1 255
+    // @User: Standard
+    AP_GROUPINFO("B_CMP_ID", 22, AP_BattMonitor_Params, _comp_id, 25),
+
+    // @Param: B_SYS_ID
+    // @DisplayName: mavlnk battery monitor system id
+    // @Description: battery_status messages will be accepted from this system id
+    // @Range: 1 255
+    // @User: Standard
+    AP_GROUPINFO("B_SYS_ID", 23, AP_BattMonitor_Params, _sys_id, 1),
+
     AP_GROUPEND
 
 };

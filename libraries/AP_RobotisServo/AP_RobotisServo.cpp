@@ -43,6 +43,10 @@
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <SRV_Channel/SRV_Channel.h>
 
+#ifdef DYN_HEADING_SERVO
+#include <AP_AHRS/AP_AHRS.h>
+#endif
+
 extern const AP_HAL::HAL& hal;
 
 #define BROADCAST_ID 0xFE
@@ -398,12 +402,37 @@ void AP_RobotisServo::update()
         if (c == nullptr) {
             continue;
         }
-        const uint16_t pwm = c->get_output_pwm();
-        const uint16_t min = c->get_output_min();
-        const uint16_t max = c->get_output_max();
-        float v = float(pwm - min) / (max - min);
-        uint32_t value = pos_min + v * (pos_max - pos_min);
-        send_command(i+1, REG_GOAL_POSITION, value, 4);
+#ifdef DYN_HEADING_SERVO
+        if(i!=4)
+            {
+#endif
+            const uint16_t pwm = c->get_output_pwm();
+            const uint16_t min = c->get_output_min();
+            const uint16_t max = c->get_output_max();
+            float v = float(pwm - min) / (max - min);
+            uint32_t value = pos_min + v * (pos_max - pos_min);
+            send_command(i+1, REG_GOAL_POSITION, value, 4);
+#ifdef DYN_HEADING_SERVO
+            }
+            else
+            {
+            AP_AHRS &ahrs = AP::ahrs();
+            float yaw=ahrs.get_yaw();
+            yaw*=180/M_PI;
+            if(yaw>180)
+                yaw-=360;
+            if(yaw<-180)
+                yaw+=360;
+            yaw*=2048/180;
+            yaw+=2048;
+            if(yaw<1536)
+                yaw=1536;
+            if(yaw>2560)
+                yaw=2560;
+            send_command(i+1, REG_GOAL_POSITION, (uint32_t)yaw, 4);
+            }
+#endif
+
     }
 }
 

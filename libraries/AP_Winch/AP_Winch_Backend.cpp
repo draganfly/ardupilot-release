@@ -16,6 +16,7 @@ void AP_Winch_Backend::init()
         // rc input deadzone is required or pilot input will always override autonomous control of winch
         rc_input->set_default_dead_zone(30);
     }
+    command_time=last_command_time=0;
 }
 
 // calculate the pilot desired rate (+ve deploys line, -ve retracts line, 0 stops) from rc input

@@ -648,6 +648,17 @@ void AP_Mount::handle_param_value(const mavlink_message_t &msg)
     }
 }
 
+// handle COMMAND_ACK
+void AP_Mount::handle_command_ack(const mavlink_message_t &msg)
+{
+    for (uint8_t instance=0; instance<AP_MOUNT_MAX_INSTANCES; instance++) {
+        if (_backends[instance] != nullptr) {
+            _backends[instance]->handle_command_ack(msg);
+        }
+    }
+}
+
+
 
 // handle GIMBAL_DEVICE_INFORMATION message
 void AP_Mount::handle_gimbal_device_information(const mavlink_message_t &msg)

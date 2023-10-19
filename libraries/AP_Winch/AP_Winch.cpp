@@ -4,6 +4,9 @@
 
 #include "AP_Winch_PWM.h"
 #include "AP_Winch_Daiwa.h"
+#include "AP_Winch_Mavlink.h"
+
+#include <GCS_MAVLink/GCS.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -31,6 +34,13 @@ const AP_Param::GroupInfo AP_Winch::var_info[] = {
     // @Range: 0.01 10.0
     // @User: Standard
     AP_GROUPINFO("_POS_P", 3, AP_Winch, config.pos_p, 1.0f),
+
+    // @Param: _OPTIONS
+    // @DisplayName: Winch control options
+    // @Description: Winch control options
+    // @Bitmask: 0:GroundSensse
+    // @User: Standard
+    AP_GROUPINFO("_OPTIONS", 4, AP_Winch, config.options, 0),
 
     // 4 was _RATE_PID
 
@@ -76,6 +86,9 @@ void AP_Winch::init()
     case WinchType::DAIWA:
         backend = new AP_Winch_Daiwa(config);
         break;
+    case WinchType::MAVLINK:
+        backend = new AP_Winch_Mavlink(config);
+        break;
     default:
         break;
     }
@@ -90,15 +103,44 @@ void AP_Winch::release_length(float length)
     if (backend == nullptr) {
         return;
     }
+    if ((WinchType)config.type.get() == WinchType::MAVLINK)
+        config.length_relative=length;
     config.length_desired = backend->get_current_length() + length;
     config.control_mode = ControlMode::POSITION;
+    backend->command_time=AP_HAL::millis();
 }
 
 // deploy line at specified speed in m/s (+ve deploys line, -ve retracts line, 0 stops)
-void AP_Winch::set_desired_rate(float rate)
+void AP_Winch::set_desired_rate(float rate, bool auto_mode)
 {
     config.rate_desired = constrain_float(rate, -get_rate_max(), get_rate_max());
     config.control_mode = ControlMode::RATE;
+    if(auto_mode==true)
+        backend->command_time=AP_HAL::millis();
+
+}
+
+// relax the winch so it does not attempt to maintain length or rate
+void AP_Winch::relax(bool auto_mode) 
+{ 
+    config.control_mode = ControlMode::RELAXED; 
+    if(auto_mode==true)
+        backend->command_time=AP_HAL::millis();
+}
+
+// put the winch into delivery mode
+void AP_Winch::deliver() 
+{ 
+    config.control_mode = ControlMode::DELIVER; 
+    backend->command_time=AP_HAL::millis();
+}
+
+// put the winch into delivery mode
+void AP_Winch::retract() 
+{ 
+    config.control_mode = ControlMode::RETRACT; 
+    config.length_desired=0; 
+    backend->command_time=AP_HAL::millis();
 }
 
 // send status to ground station
@@ -118,12 +160,50 @@ bool AP_Winch::pre_arm_check(char *failmsg, uint8_t failmsg_len) const
     }
 
     // fail if unhealthy
-    if (!healthy()) {
+    if (!healthy() && (WinchType)config.type.get() != WinchType::MAVLINK) {
         hal.util->snprintf(failmsg, failmsg_len, "winch unhealthy");
         return false;
     }
 
     return true;
+}
+
+void AP_Winch::handleMessage(const mavlink_message_t& msg)
+{
+    if ((WinchType)config.type.get() == WinchType::MAVLINK && backend!=nullptr)
+        {
+            mavlink_winch_status_t Winch;
+            mavlink_msg_winch_status_decode(&msg,&Winch);
+            backend->handleMessage(Winch);
+        }
+}
+
+void AP_Winch::handle_command_ack(const mavlink_message_t& msg)
+{
+    if ((WinchType)config.type.get() == WinchType::MAVLINK && backend!=nullptr)
+        {
+            mavlink_command_ack_t Ack;
+            mavlink_msg_command_ack_decode(&msg,&Ack);
+            backend->handle_command_ack(Ack);
+        }
+}
+
+int AP_Winch::ground_sense()
+{
+    if(backend!=nullptr)
+        return backend->ground_sense();
+        else
+        return -1;
+
+}
+
+float AP_Winch::get_line_length()
+{
+    if(backend!=nullptr)
+        return backend->get_line_length();
+        else
+        return -1;
+
 }
 
 // update - should be called at at least 10hz

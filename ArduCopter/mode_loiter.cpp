@@ -6,6 +6,8 @@
  * Init and run calls for loiter flight mode
  */
 
+static uint32_t update_time_ms;
+
 // loiter_init - initialise loiter controller
 bool ModeLoiter::init(bool ignore_checks)
 {
@@ -30,6 +32,7 @@ bool ModeLoiter::init(bool ignore_checks)
         pos_control->init_z_controller();
     }
 
+    auto_yaw.set_mode(Mode::AutoYaw::Mode::HOLD);
     // set vertical speed and acceleration limits
     pos_control->set_max_speed_accel_z(-get_pilot_speed_dn(), g.pilot_speed_up, g.pilot_accel_z);
     pos_control->set_correction_speed_accel_z(-get_pilot_speed_dn(), g.pilot_speed_up, g.pilot_accel_z);
@@ -37,7 +40,7 @@ bool ModeLoiter::init(bool ignore_checks)
 #if PRECISION_LANDING == ENABLED
     _precision_loiter_active = false;
 #endif
-
+    update_time_ms=0;
     return true;
 }
 
@@ -103,6 +106,10 @@ void ModeLoiter::run()
 
         // get pilot's desired yaw rate
         target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->norm_input_dz());
+
+        if (!is_zero(target_yaw_rate)) {
+            auto_yaw.set_mode(Mode::AutoYaw::Mode::HOLD);
+        }
 
         // get pilot desired climb rate
         target_climb_rate = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
@@ -212,5 +219,29 @@ int32_t ModeLoiter::wp_bearing() const
 {
     return loiter_nav->get_bearing_to_target();
 }
+
+// helper function to set yaw state and targets
+void ModeLoiter::set_yaw_target(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle)
+{
+    update_time_ms = millis();
+    if (use_yaw && relative_angle) {
+        auto_yaw.set_fixed_yaw(yaw_cd * 0.01f, 0.0f, 0, relative_angle);
+    } else if (use_yaw && use_yaw_rate) {
+        auto_yaw.set_yaw_angle_rate(yaw_cd * 0.01f, yaw_rate_cds * 0.01f);
+    } else if (use_yaw && !use_yaw_rate) {
+        auto_yaw.set_yaw_angle_rate(yaw_cd * 0.01f, 0.0f);
+    } else if (use_yaw_rate) {
+        auto_yaw.set_rate(yaw_rate_cds);
+    } else {
+        auto_yaw.set_mode_to_default(false);
+    }
+}
+
+// return guided mode timeout in milliseconds. Only used for velocity, acceleration, angle control, and angular rates
+uint32_t ModeLoiter::get_timeout_ms() const
+{
+    return MAX(copter.g2.guided_timeout, 0.1) * 1000;
+}
+
 
 #endif

@@ -19,10 +19,13 @@
  *  Code in this file implements the navigation commands
  */
 
+static uint32_t update_time_ms;
+
 // auto_init - initialise auto controller
 bool ModeAuto::init(bool ignore_checks)
 {
     auto_RTL = false;
+    update_time_ms=0;
     if (mission.num_commands() > 1 || ignore_checks) {
         // reject switching to auto mode if landed with motors armed but first command is not a takeoff (reduce chance of flips)
         if (motors->armed() && copter.ap.land_complete && !mission.starts_with_takeoff_cmd()) {
@@ -988,6 +991,12 @@ void ModeAuto::wp_run()
     // run the vertical position controller and set output throttle
     pos_control->update_z_controller();
 
+    if ((millis() - update_time_ms > get_timeout_ms()) && (update_time_ms !=0)) {
+        auto_yaw.set_mode(Mode::AutoYaw::Mode::LOOK_AT_NEXT_WP);
+        update_time_ms=0;
+    }
+
+
     // call attitude controller with auto yaw
     attitude_control->input_thrust_vector_heading(pos_control->get_thrust_vector(), auto_yaw.get_heading());
 }
@@ -1251,6 +1260,20 @@ void ModeAuto::payload_place_run()
             gcs().send_text(MAV_SEVERITY_WARNING, "%s Reached maximum descent", prefix_str);
             break;
         }
+        #if AP_WINCH_ENABLED == ENABLED
+        if(g2.winch.ground_sense()!=-1)
+            {
+                if(g2.winch.ground_sense()==1)
+                    {
+                    nav_payload_place.state = PayloadPlaceStateType_Release;
+                    FALLTHROUGH;
+                    }
+                    else
+                    {
+                        return;
+                    }
+            }
+        #endif
         // calibrate the decent thrust after aircraft has reached constant decent rate and release if threshold is reached
         if (pos_control->get_vel_desired_cms().z > -0.95 * nav_payload_place.descent_speed_cms) {
             // decent rate has not reached descent_speed_cms
@@ -1908,14 +1931,24 @@ void ModeAuto::do_winch(const AP_Mission::Mission_Command& cmd)
     // Note: we ignore the gripper num parameter because we only support one gripper
     switch (cmd.content.winch.action) {
         case WINCH_RELAXED:
-            g2.winch.relax();
+            g2.winch.relax(true);
             break;
-        case WINCH_RELATIVE_LENGTH_CONTROL:
-            g2.winch.release_length(cmd.content.winch.release_length);
+         case WINCH_RELATIVE_LENGTH_CONTROL:
+             g2.winch.release_length(cmd.content.winch.release_length);
+             break;
+         case WINCH_RATE_CONTROL:
+            g2.winch.set_desired_rate(cmd.content.winch.release_rate,true);
+             break;
+        case WINCH_ABANDON_LINE:
+        case WINCH_DELIVER:
+            g2.winch.deliver();
             break;
-        case WINCH_RATE_CONTROL:
-            g2.winch.set_desired_rate(cmd.content.winch.release_rate);
+        case WINCH_RETRACT:
+        case WINCH_LOCK:
+            g2.winch.retract();
             break;
+        case WINCH_HOLD:
+            g2.winch.set_desired_rate(0,true);
         default:
             // do nothing
             break;
@@ -2251,4 +2284,26 @@ bool ModeAuto::resume()
     return true;
 }
 
-#endif
+void ModeAuto::set_yaw_target(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle)
+{
+    update_time_ms=millis();
+    if (use_yaw && relative_angle) {
+        auto_yaw.set_fixed_yaw(yaw_cd * 0.01f, 0.0f, 0, relative_angle);
+    } else if (use_yaw && use_yaw_rate) {
+        auto_yaw.set_yaw_angle_rate(yaw_cd * 0.01f, yaw_rate_cds * 0.01f);
+    } else if (use_yaw && !use_yaw_rate) {
+        auto_yaw.set_yaw_angle_rate(yaw_cd * 0.01f, 0.0f);
+    } else if (use_yaw_rate) {
+        auto_yaw.set_rate(yaw_rate_cds);
+    } else {
+        auto_yaw.set_mode_to_default(false);
+    }
+}
+
+// return guided mode timeout in milliseconds. Only used for velocity, acceleration, angle control, and angular rates
+uint32_t ModeAuto::get_timeout_ms() const
+{
+    return MAX(copter.g2.guided_timeout, 0.1) * 1000;
+}
+
+ #endif

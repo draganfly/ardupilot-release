@@ -42,6 +42,20 @@ public:
     // write log
     virtual void write_log() = 0;
 
+    // handle mavlink status message
+    virtual void handleMessage(const mavlink_winch_status_t &msg) {return;}
+
+    // handle mavlink ack message
+    virtual void handle_command_ack(const mavlink_command_ack_t &msg) {return;}
+
+    // get ground sense
+    virtual int ground_sense() {return -1;};
+
+    //get current line length
+    virtual float get_line_length() {return 0;}
+
+    uint32_t command_time, last_command_time;
+
 protected:
 
     // calculate the pilot desired rate (+ve deploys line, -ve retracts line, 0 stops) from rc input

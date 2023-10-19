@@ -69,6 +69,7 @@ public:
     virtual bool allows_save_trim() const { return false; }
     virtual bool allows_autotune() const { return false; }
     virtual bool allows_flip() const { return false; }
+    virtual void set_yaw_target(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle) {};
 
     // return a string for this flightmode
     virtual const char *name() const = 0;
@@ -507,6 +508,9 @@ public:
 
     // Mission change detector
     AP_Mission_ChangeDetector mis_change_detector;
+    void set_yaw_target(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle) override;
+    // return guided mode timeout in milliseconds. Only used for velocity, acceleration, angle control, and angular rate control
+    uint32_t get_timeout_ms() const;
 
     // true if weathervaning is allowed in auto
 #if WEATHERVANE_ENABLED == ENABLED
@@ -757,6 +761,10 @@ public:
     bool is_autopilot() const override { return false; }
 
     void timeout_to_loiter_ms(uint32_t timeout_ms);
+
+    void set_yaw_target(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle) override;
+    // return guided mode timeout in milliseconds. Only used for velocity, acceleration, angle control, and angular rate control
+    uint32_t get_timeout_ms() const;
 
 protected:
 
@@ -1044,6 +1052,7 @@ public:
     // pause continue in guided mode
     bool pause() override;
     bool resume() override;
+    void set_yaw_state(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle);
 
     // true if weathervaning is allowed in guided
 #if WEATHERVANE_ENABLED == ENABLED
@@ -1088,7 +1097,7 @@ private:
     void velaccel_control_run();
     void pause_control_run();
     void posvelaccel_control_run();
-    void set_yaw_state(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle);
+
 
     // controls which controller is run (pos or vel):
     SubMode guided_mode = SubMode::TakeOff;
@@ -1181,6 +1190,10 @@ public:
     bool is_autopilot() const override { return false; }
     bool has_user_takeoff(bool must_navigate) const override { return true; }
     bool allows_autotune() const override { return true; }
+    void set_yaw_target(bool use_yaw, float yaw_cd, bool use_yaw_rate, float yaw_rate_cds, bool relative_angle) override;
+ 
+    // return guided mode timeout in milliseconds. Only used for velocity, acceleration, angle control, and angular rate control
+    uint32_t get_timeout_ms() const;
 
 #if PRECISION_LANDING == ENABLED
     void set_precision_loiter_enabled(bool value) { _precision_loiter_enabled = value; }

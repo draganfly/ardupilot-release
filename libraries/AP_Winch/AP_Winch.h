@@ -18,7 +18,7 @@
 #include "AP_Winch_config.h"
 
 #if AP_WINCH_ENABLED
-
+#include <GCS_MAVLink/GCS.h>
 #include <AP_Common/AP_Common.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_Param/AP_Param.h>
@@ -30,6 +30,7 @@ class AP_Winch {
     friend class AP_Winch_Backend;
     friend class AP_Winch_PWM;
     friend class AP_Winch_Daiwa;
+    friend class AP_Winch_Mavlink;
 
 public:
     AP_Winch();
@@ -50,13 +51,19 @@ public:
     void update();
 
     // relax the winch so it does not attempt to maintain length or rate
-    void relax() { config.control_mode = ControlMode::RELAXED; }
+    void relax(bool auto_mode=false);
+
+    // put the winch into delivery mode
+    void deliver();
+
+    // put the winch into delivery mode
+    void retract();
 
     // release specified length of cable (in meters)
     void release_length(float length);
 
     // deploy line at specified speed in m/s (+ve deploys line, -ve retracts line, 0 stops)
-    void set_desired_rate(float rate);
+    void set_desired_rate(float rate, bool auto_mode=false);
 
     // get rate maximum in m/s
     float get_rate_max() const { return MAX(config.rate_max, 0.0f); }
@@ -74,12 +81,21 @@ public:
 
     static const struct AP_Param::GroupInfo        var_info[];
 
+    void handleMessage(const mavlink_message_t& msg);
+
+    void handle_command_ack(const mavlink_message_t& msg);
+
+    int ground_sense();
+
+    float get_line_length();
+
 private:
 
     enum class WinchType {
         NONE = 0,
         PWM = 1,
-        DAIWA = 2
+        DAIWA = 2,
+        MAVLINK =3,
     };
 
     // winch states
@@ -87,7 +103,9 @@ private:
         RELAXED = 0,    // winch is realxed
         POSITION,       // moving or maintaining a target length (from an external source)
         RATE,           // extending or retracting at a target rate (from an external source)
-        RATE_FROM_RC    // extending or retracting at a target rate (from RC input)
+        RATE_FROM_RC,    // extending or retracting at a target rate (from RC input)
+        DELIVER,        // winch will touch down then release
+        RETRACT,        // winch will retract and lock
     };
 
     struct Backend_Config {
@@ -95,13 +113,16 @@ private:
         AP_Float    rate_max;           // deploy or retract rate maximum (in m/s).
         AP_Float    pos_p;              // position error P gain
         ControlMode control_mode;       // state of winch control (using target position or target rate)
+        float       length_relative;    // how much to change the length by (in meters)
         float       length_desired;     // target desired length (in meters)
         float       rate_desired;       // target deploy rate (in m/s, +ve = deploying, -ve = retracting)
+        AP_Int32   options;
     } config;
 
     AP_Winch_Backend *backend;
 
     static AP_Winch *_singleton;
+
 };
 
 namespace AP {

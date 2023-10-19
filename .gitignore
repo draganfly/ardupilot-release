@@ -38,6 +38,8 @@
 *.vbrain
 *.vrx
 *.zip
+dumpcore*.out
+*.parm
 !Tools/autotest/tilecache/**/*.zip
 *~
 .*.swo
@@ -154,3 +156,5 @@ dumpstack_*out
 build.tmp.binaries/
 tasklist.json
 modules/esp_idf
+*.rej
+*.porig

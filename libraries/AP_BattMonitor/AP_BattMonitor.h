@@ -46,6 +46,7 @@ class AP_BattMonitor_Torqeedo;
 class AP_BattMonitor_FuelLevel_Analog;
 class AP_BattMonitor_EFI;
 
+class AP_BattMonitor_Mavlink;
 
 class AP_BattMonitor
 {
@@ -69,6 +70,7 @@ class AP_BattMonitor
     friend class AP_BattMonitor_Torqeedo;
     friend class AP_BattMonitor_FuelLevel_Analog;
     friend class AP_BattMonitor_Synthetic_Current;
+    friend class AP_BattMonitor_Mavlink;
 
 public:
 
@@ -107,6 +109,7 @@ public:
         Analog_Volt_Synthetic_Current  = 25,
         INA239_SPI                     = 26,
         EFI                            = 27,
+        Mavlink                        = 64,
     };
 
     FUNCTOR_TYPEDEF(battery_failsafe_handler_fn_t, void, const char *, const int8_t);
@@ -151,6 +154,8 @@ public:
         bool        has_time_remaining;        // time_remaining is only valid if this is true
         uint8_t     instance;                  // instance number of this backend
         const struct AP_Param::GroupInfo *var_info;
+        int8_t percent;
+
     };
 
     static const struct AP_Param::GroupInfo *backend_var_info[AP_BATT_MONITOR_MAX_INSTANCES];
@@ -198,6 +203,8 @@ public:
 
     /// time_remaining - returns remaining battery time
     bool time_remaining(uint32_t &seconds, const uint8_t instance = AP_BATT_PRIMARY_INSTANCE) const WARN_IF_UNUSED;
+
+    uint16_t time_remaining(const uint8_t instance = AP_BATT_PRIMARY_INSTANCE) const;
 
     /// pack_capacity_mah - returns the capacity of the battery pack in mAh when the pack is full
     int32_t pack_capacity_mah(uint8_t instance) const;
@@ -265,6 +272,7 @@ public:
 
     // Returns mavlink fault state
     uint32_t get_mavlink_fault_bitmask(const uint8_t instance) const;
+    void handle_mavlink_battery(const mavlink_message_t &battery_status);
 
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -297,4 +305,5 @@ private:
 
 namespace AP {
     AP_BattMonitor &battery();
+    AP_BattMonitor *get_battery_pointer();
 };

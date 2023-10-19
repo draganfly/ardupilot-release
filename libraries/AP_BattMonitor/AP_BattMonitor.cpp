@@ -20,6 +20,7 @@
 #include "AP_BattMonitor_Torqeedo.h"
 #include "AP_BattMonitor_FuelLevel_Analog.h"
 #include "AP_BattMonitor_Synthetic_Current.h"
+#include "AP_BattMonitor_Mavlink.h"
 
 #include <AP_HAL/AP_HAL.h>
 
@@ -298,6 +299,9 @@ AP_BattMonitor::init()
                 drivers[instance] = new AP_BattMonitor_SMBus_Rotoye(*this, state[instance], _params[instance]);
                 break;
 #endif
+            case Type::Mavlink:
+                drivers[instance]= new AP_BattMonitor_Mavlink(*this,state[instance],_params[instance]);
+                break;
 #if AP_BATTERY_SMBUS_NEODESIGN_ENABLED
             case Type::NeoDesign:
                 drivers[instance] = new AP_BattMonitor_SMBus_NeoDesign(*this, state[instance], _params[instance]);
@@ -880,11 +884,24 @@ bool AP_BattMonitor::healthy() const
     return true;
 }
 
+void AP_BattMonitor::handle_mavlink_battery(const mavlink_message_t &battery_status)
+{
+    for (uint8_t instance=0; instance<AP_BATT_MONITOR_MAX_INSTANCES; instance++) {
+        if(get_type(instance)==Type::Mavlink && drivers[instance]!=nullptr)
+            drivers[instance]->handle_mavlink(battery_status,instance);
+    }
+}
+
 namespace AP {
 
 AP_BattMonitor &battery()
 {
     return *AP_BattMonitor::get_singleton();
+}
+
+AP_BattMonitor *get_battery_pointer()
+{
+return AP_BattMonitor::get_singleton();
 }
 
 };

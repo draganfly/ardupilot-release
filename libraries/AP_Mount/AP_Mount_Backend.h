@@ -94,6 +94,9 @@ public:
     // handle a PARAM_VALUE message
     virtual void handle_param_value(const mavlink_message_t &msg) {}
 
+    // handle a COMMAND_ACK message
+    virtual void handle_command_ack(const mavlink_message_t &msg) {}
+
     // handle a GLOBAL_POSITION_INT message
     bool handle_global_position_int(uint8_t msg_sysid, const mavlink_global_position_int_t &packet);
 
@@ -109,6 +112,9 @@ public:
     virtual bool get_location_target(Location &target_loc) { return false; }
     virtual void set_attitude_euler(float roll_deg, float pitch_deg, float yaw_bf_deg) {};
     virtual bool get_camera_state(uint16_t& pic_count, bool& record_video, int8_t& zoom_step, int8_t& focus_step, bool& auto_focus) { return false; }
+
+    Location _roi_target;           // roi target location
+    bool _roi_target_set;           // true if the roi target has been set
 
     //
     // camera controls for gimbals that include a camera
@@ -198,6 +204,8 @@ protected:
     // sent warning to GCS
     void send_warning_to_GCS(const char* warning_str);
 
+    bool get_roi(int32_t &alt,int32_t &lat, int32_t &lon);
+
     AP_Mount    &_frontend; // reference to the front end which holds parameters
     AP_Mount_Params &_params; // parameters for this backend
     uint8_t     _instance;  // this instance's number
@@ -212,8 +220,6 @@ protected:
         MountTarget rate_rads;      // rate target in rad/s
     } mavt_target;
 
-    Location _roi_target;           // roi target location
-    bool _roi_target_set;           // true if the roi target has been set
 
     uint8_t _target_sysid;          // sysid to track
     Location _target_sysid_location;// sysid target location
