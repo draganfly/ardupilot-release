@@ -58,8 +58,19 @@ void ModeBrake::run()
     pos_control->input_vel_accel_xy(vel, accel);
     pos_control->update_xy_controller();
 
+    if ((millis() - update_time_ms > get_timeout_ms()) && (update_time_ms !=0)) {
+            auto_yaw.set_rate(0.0f);
+            update_time_ms=0;
+    }
+
+    float target_yaw_rate=0.0f;
+    AC_AttitudeControl::HeadingCommand Heading=auto_yaw.get_heading();
+    if(Heading.heading_mode==AC_AttitudeControl::HeadingMode::Rate_Only)
+       target_yaw_rate=Heading.yaw_rate_cds;
+
+
     // call attitude controller
-    attitude_control->input_thrust_vector_rate_heading(pos_control->get_thrust_vector(), 0.0f);
+    attitude_control->input_thrust_vector_rate_heading(pos_control->get_thrust_vector(), target_yaw_rate);
 
     pos_control->set_pos_target_z_from_climb_rate_cm(0.0f);
     pos_control->update_z_controller();

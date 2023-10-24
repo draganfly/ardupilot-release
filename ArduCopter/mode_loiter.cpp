@@ -107,9 +107,21 @@ void ModeLoiter::run()
         // get pilot's desired yaw rate
         target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->norm_input_dz());
 
+        if ((millis() - update_time_ms > get_timeout_ms()) && (update_time_ms !=0)) {
+            auto_yaw.set_mode(Mode::AutoYaw::Mode::HOLD);
+            update_time_ms=0;
+        }
+
         if (!is_zero(target_yaw_rate)) {
             auto_yaw.set_mode(Mode::AutoYaw::Mode::HOLD);
         }
+        else
+        {
+            AC_AttitudeControl::HeadingCommand Heading=auto_yaw.get_heading();
+            if(Heading.heading_mode==AC_AttitudeControl::HeadingMode::Rate_Only)
+                target_yaw_rate=Heading.yaw_rate_cds;
+        }
+        
 
         // get pilot desired climb rate
         target_climb_rate = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
