@@ -84,19 +84,42 @@ void AP_Mount_SToRM32::update()
                     _mount_control_timer=0;
                     _force_change=false;
                     }
-                _rate_output=false;
-                if(fabsf(ToDeg(_angle_rad.pitch)-_last_tilt)>0.01f || fabsf(ToDeg(_angle_rad.roll)-_last_roll)>0.01f || fabsf(ToDeg(_angle_rad.yaw) -_last_pan)>0.01f)
-                    _mount_ack_control=false;
-                if(_require_change_mode==false)
+                switch(mavt_target.target_type)
                     {
-                    if((AP_HAL::millis()-_mount_control_timer)>=AP_MOUNT_STORM32_COMMAND_RETRY_MS && _mount_ack_control==false)
-                        {
-                        send_do_mount_control(_angle_rad, mode);
-                        _last_tilt=ToDeg(_angle_rad.pitch);
-                        _last_roll=ToDeg(_angle_rad.roll);
-                        _last_pan=ToDeg(_angle_rad.yaw);
-                        }
+                        case MountTargetType::ANGLE:
+                            _rate_output=false;
+                            _angle_rad = mavt_target.angle_rad;
+                            if(fabsf(ToDeg(_angle_rad.pitch)-_last_tilt)>0.01f || fabsf(ToDeg(_angle_rad.roll)-_last_roll)>0.01f || fabsf(ToDeg(_angle_rad.yaw) -_last_pan)>0.01f)
+                                _mount_ack_control=false;
+                            if(_require_change_mode==false)
+                                {
+                                if((AP_HAL::millis()-_mount_control_timer)>=AP_MOUNT_STORM32_COMMAND_RETRY_MS && _mount_ack_control==false)
+                                    {
+                                    send_do_mount_control(_angle_rad, mode);
+                                    _last_tilt=ToDeg(_angle_rad.pitch);
+                                    _last_roll=ToDeg(_angle_rad.roll);
+                                    _last_pan=ToDeg(_angle_rad.yaw);
+                                    }
+                                }
+                        break;
+                        case MountTargetType::RATE:
+                            _rate_output=true;
+                            _rate_rads = mavt_target.rate_rads;
+                            if(fabsf(ToDeg(_rate_rads.pitch)-_last_tilt)>0.01f || fabsf(ToDeg(_rate_rads.roll)-_last_roll)>0.01f || fabsf(ToDeg(_rate_rads.yaw) -_last_pan)>0.01f)
+                                _mount_ack_control=false;
+                            if(_require_change_mode==false)
+                                {
+                                if((AP_HAL::millis()-_mount_control_timer)>=AP_MOUNT_STORM32_COMMAND_RETRY_MS && _mount_ack_control==false)
+                                    {
+                                    send_do_mount_control(_rate_rads, mode);
+                                    _last_tilt=ToDeg(_rate_rads.pitch);
+                                    _last_roll=ToDeg(_rate_rads.roll);
+                                    _last_pan=ToDeg(_rate_rads.yaw);
+                                    }
+                                }
+                        break;
                     }
+
                 block_send=true;
                 }
                 else

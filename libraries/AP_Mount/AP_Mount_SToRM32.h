@@ -64,6 +64,7 @@ private:
     mavlink_channel_t _chan = MAVLINK_COMM_0;        // mavlink channel used to communicate with gimbal
     uint32_t _last_send;            // system time of last do_mount_control sent to gimbal
     MountTarget _angle_rad;         // latest angle target
+    MountTarget _rate_rads;         //latest rate target
 
     uint32_t _last_gimbal_info_request; //system time of the last time we send the request for the gimbal info
     uint32_t _gimbal_options_mask;
